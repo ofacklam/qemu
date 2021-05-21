@@ -18,9 +18,16 @@
 #include "qflex/qflex-log.h"
 #include "qflex/qflex-traces.h"
 
+#ifdef CONFIG_DEVTEROFLEX
+#include "qflex/devteroflex/file-ops.h"
+#endif
 
 // ------ TRACE --------
 QflexTraceState_t qflexTraceState = {
+#ifdef CONFIG_DEVTEROFLEX
+    .traceFiles = NULL,
+    .instFiles = NULL,
+#endif
     .total_insts = 0,
     .total_mem = 0,
     .total_ld = 0,
@@ -38,18 +45,39 @@ void qflex_mem_trace_init(int core_count) {
     qflexTraceState.gen_trace = false;
     qflexTraceState.gen_inst_trace_type = false;
 
+#ifdef CONFIG_DEVTEROFLEX
+    qflexTraceState.traceFiles = calloc(core_count, sizeof(FILE*));
+    char filename[sizeof "mem_trace_00"];
+    for(int i = 0; i < core_count; i++) {
+        if(i > 64) exit(1);
+        sprintf(filename, "mem_trace_%02d", i);
+        qemu_log("Filename %s\n", filename);
+        file_stream_open(&qflexTraceState.traceFiles[i], filename);
+    }
+
+    // Instruction trace
+    qflexTraceState.instFiles = calloc(core_count, sizeof(FILE*));
+
+    char filenameInst[sizeof "inst_trace_00"];
+    for(int i = 0; i < core_count; i++) {
+         if(i > 64) exit(1);
+        sprintf(filenameInst, "inst_trace_%02d", i);
+        qemu_log("Filename %s\n", filename);
+        file_stream_open(&qflexTraceState.instFiles[i], filenameInst);
+    }
+#endif
 }
 
 void qflex_inst_trace(uint32_t cpu_index, uint64_t asid, uint32_t inst) {
 #ifdef CONFIG_DEVTEROFLEX
-    devteroflex_file_stream_write(qflexTraceState.instFiles[cpu_index], &inst, sizeof(inst));
+    file_stream_write(qflexTraceState.instFiles[cpu_index], &inst, sizeof(inst));
 #endif
     qemu_log("CPU[%"PRIu32"]:ASID[%"PRIu64"]:INST[0x%016"PRIx32"]\n", cpu_index, asid, inst);
 }
 
 void qflex_inst_trace_full(QflexInstTraceFull_t trace) {
 #ifdef CONFIG_DEVTEROFLEX
-    devteroflex_file_stream_write(qflexTraceState.instFiles[trace.cpu_index], &trace, sizeof(QflexInstTraceFull_t));
+    file_stream_write(qflexTraceState.instFiles[trace.cpu_index], &trace, sizeof(QflexInstTraceFull_t));
 #endif
     qemu_log("CPU[%"PRIu32"]:ASID[%04"PRIu64"]:TID[%04"PRIu64"]:PC[0x%016"PRIx64"]:INST[0x%08"PRIx32"]\n", trace.cpu_index, trace.asid, trace.tid, trace.pc, trace.inst);
 }
@@ -65,7 +93,7 @@ void qflex_mem_trace_memaccess(uint64_t vaddr, uint64_t hwaddr, uint64_t cpu_ind
 
 #ifdef CONFIG_DEVTEROFLEX
     MemTraceReq_t trace = {.vaddr = vaddr, .hwaddr = hwaddr, .type = type};
-    devteroflex_file_stream_write(qflexTraceState.traceFiles[cpu_index], &trace, sizeof(trace));
+    file_stream_write(qflexTraceState.traceFiles[cpu_index], &trace, sizeof(trace));
 #endif
 
     switch (type) {

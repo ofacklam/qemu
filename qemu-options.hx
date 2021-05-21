@@ -5270,6 +5270,36 @@ SRST
     Enable a QFLEX to trace memory instructions
 ERST
 
+#ifdef CONFIG_DEVTEROFLEX
+
+DEF("devteroflex", HAS_ARG, QEMU_OPTION_devteroflex, \
+    "-devteroflex [enable=on|off][,mode=full|magic][,sim=on|off]\n",
+    QEMU_ARCH_ARM)
+
+SRST
+``-devteroflex [enable=on|off][,mode=full|magic][,sim=on|off]``
+    Enable DevteroFlex, FPGA Accelerated instrumentation platform.
+
+    ``enable=on``
+    if DevteroFlex is enabled, will start DevteroFlex from the beginning.
+    Currently this option does not work when TBD.
+
+    ``-mode=mode``
+    will enable DevteroFlex to take control when
+
+    ``magic`` instruction is hit or ``full`` from the start (default).
+    Currently this option does not work if DevteroFlex is disabled.
+    
+    ``sim=on``
+    will communicate with Chisel3 simulator instead of real FPGA.
+    Currently this option does not work if DevteroFlex is disabled and
+    does not work if sim is disabled.
+
+ERST
+
+#endif /* CONFIG_DEVTEROFLEX */
+
+
 #endif /* CONFIG_QFLEX */
 
 HXCOMM This is the last statement. Insert new options before this line!

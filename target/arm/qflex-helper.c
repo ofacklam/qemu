@@ -9,6 +9,13 @@
 #include "qflex/qflex-helper-a64.h"
 #include "qflex/qflex-traces.h"
 
+#ifdef CONFIG_DEVTEROFLEX
+#include "qflex/devteroflex/devteroflex.h"
+#include "qflex/devteroflex/verification.h"
+#include "qflex/devteroflex/page-demander.h"
+#endif /* CONFIG_DEVTEROFLEX */
+
+
 /* TCG helper functions. (See exec/helper-proto.h  and target/arch/helper-a64.h)
  * This one expands prototypes for the helper functions.
  * They get executed in the TB
@@ -50,7 +57,26 @@ static inline void qflex_cmds(CPUState *cs, uint64_t nop_op) {
     }
 }
 
+#ifdef CONFIG_DEVTEROFLEX
+static inline void devteroflex_cmds(CPUState *cs, uint64_t nop_op) {
+    switch(nop_op) {
+        case DEVTEROFLEX_FLOW_START: 
+            devteroflex_start(); 
+            qemu_loglevel |= CPU_LOG_TB_IN_ASM;
+            qemu_loglevel |= CPU_LOG_INT;
+            break;
+        case DEVTEROFLEX_FLOW_STOP: 
+            devteroflex_stop(); 
+            qemu_loglevel &= ~CPU_LOG_TB_IN_ASM;
+            qemu_loglevel &= ~CPU_LOG_INT;
+            break;
+        default: break;
+    }
+}
+#endif
+
 void HELPER(qflex_magic_inst)(CPUARMState *env, uint64_t nop_op) {
+    CPUState *cs = env_cpu(env);
     assert(nop_op >= 90);
     assert(nop_op <= 127);
     qflex_log_mask(QFLEX_LOG_MAGIC_INST, "MAGIC_INST:%"PRIu64"\n", nop_op);
@@ -70,13 +96,24 @@ void HELPER(qflex_magic_inst)(CPUARMState *env, uint64_t nop_op) {
             prev_nop_op = 0;
             return; // HELPER EXIT
 
+#ifdef CONFIG_DEVTEROFLEX
+        case DEVTEROFLEX_OP:
+            devteroflex_cmds(cs, nop_op);
+            prev_nop_op = 0;
+            return; // HELPER EXIT
+#endif
         default: break;
     }
 
     // Get chained nop_op op type
     switch(nop_op) {
-        case QFLEX_OP: prev_nop_op = QFLEX_OP; break;
-        case MEM_TRACE_OP: prev_nop_op = MEM_TRACE_OP; break;
+ #ifdef CONFIG_DEVTEROFLEX
+        case DEVTEROFLEX_OP:
+ #endif
+        case QFLEX_OP:
+        case MEM_TRACE_OP: 
+            prev_nop_op = nop_op; 
+            break;
         default: prev_nop_op = 0; break;
     }
 }
@@ -86,15 +123,15 @@ void HELPER(qflex_magic_inst)(CPUARMState *env, uint64_t nop_op) {
  * Helper gets executed before a LD/ST
  */
 void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
-	CPUState *cs = CPU(env_archcpu(env));
-	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%"PRIu64":0x%016"PRIx64"\n", cs->cpu_index, type, addr);
+    CPUState *cs = CPU(env_archcpu(env));
+    qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%"PRIu64":0x%016"PRIx64"\n", cs->cpu_index, type, addr);
     
     int inst;
     if(qflex_mem_trace_gen_trace()) {
         uint64_t paddr = gva_to_hva(cs, addr, type);
-        if (paddr != -1)  {
+        if(paddr != -1)  {
             qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, type, arm_current_el(env));
-            if (type == MMU_INST_FETCH) {
+            if(type == MMU_INST_FETCH) {
                 inst = *(uint32_t *) paddr;
                 QflexInstTraceFull_t trace = {
                     .cpu_index = cs->cpu_index, 
@@ -111,7 +148,23 @@ void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
                 }
             }
         }
-	}
+    }
+
+#ifdef CONFIG_DEVTEROFLEX
+    if(devteroflex_is_running()) {
+        if(type != MMU_INST_FETCH) {
+            devteroflex_synchronize_page(cs, addr, type);
+        }
+    }
+
+    if(gen_verification()) {
+        if(type == MMU_INST_FETCH) {
+            gen_verification_add_state(cs, addr);
+        } else {
+            gen_verification_add_mem(cs, addr);
+        }
+    }
+#endif
 }
 
 /**

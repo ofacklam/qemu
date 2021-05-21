@@ -10,6 +10,10 @@
 #define QFLEX_LOG_GEN_FULL_INST (2)
 
 typedef struct QflexTraceState_t {
+#ifdef CONFIG_DEVTEROFLEX
+    FILE** traceFiles;
+    FILE** instFiles;
+#endif
     size_t total_insts;
     size_t total_mem;
     size_t total_ld;

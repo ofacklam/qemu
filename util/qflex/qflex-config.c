@@ -44,6 +44,30 @@ QemuOptsList qemu_qflex_gen_mem_trace_opts = {
     },
 };
 
+#ifdef CONFIG_DEVTEROFLEX
+#include "qflex/devteroflex/devteroflex.h"
+QemuOptsList qemu_devteroflex_opts = {
+    .name = "devteroflex",
+    .implied_opt_name = "enable",
+    .merge_lists = true,
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_devteroflex_opts.head),
+    .desc = {
+        {
+            .name = "enable",
+            .type = QEMU_OPT_BOOL,
+        },
+        { /* end of list */ }
+    },
+};
+
+static void devteroflex_configure(QemuOpts *opts, Error **errp) {
+	bool enable;
+    enable = qemu_opt_get_bool(opts, "enable", false);
+	devteroflex_init(false, enable);
+
+}
+#endif /* CONFIG_DEVTEROFLEX */
+
 static void qflex_configure(QemuOpts *opts, Error **errp) {
     qflexState.singlestep = qemu_opt_get_bool(opts, "singlestep", false);
     if (qflexState.singlestep) {
@@ -97,6 +121,15 @@ int qflex_parse_opts(int index, const char *optarg, Error **errp) {
         qflex_gen_mem_trace_configure(opts, errp);
         qemu_opts_del(opts);
         break;
+#ifdef CONFIG_DEVTEROFLEX
+	case QEMU_OPTION_devteroflex:
+		opts = qemu_opts_parse_noisily(qemu_find_opts("devteroflex"),
+											   optarg, false);
+		if (!opts) { exit(1); }
+		devteroflex_configure(opts, errp);
+        qemu_opts_del(opts);
+		break;
+#endif /* CONFIG_DEVTEROFLEX */
     default:
         return 0;
     }

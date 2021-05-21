@@ -50,6 +50,10 @@ arm_ss.add(when: 'CONFIG_QFLEX', if_true: files(
   'qflex-helper.c',
 ))
 
+arm_ss.add(when: 'CONFIG_DEVTEROFLEX', if_true: files(
+   'devteroflex-helper.c',
+))
+
 arm_softmmu_ss = ss.source_set()
 arm_softmmu_ss.add(files(
   'arch_dump.c',

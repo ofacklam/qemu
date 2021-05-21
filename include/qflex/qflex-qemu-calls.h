@@ -51,4 +51,12 @@
 
 #define DO_QFLEX_OP(op) magic_inst(QFLEX_OP); magic_inst(op)
 
+#ifdef CONFIG_DEVTEROFLEX
+#define DEVTEROFLEX_OP    (94)
+
+#define DEVTEROFLEX_FLOW_START (90)
+#define DEVTEROFLEX_FLOW_STOP  (91)
+#define DO_DEVTEROFLEX_OP(op) magic_inst(DEVTEROFLEX_OP); magic_inst(op)
+#endif
+
 #endif

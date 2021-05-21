@@ -11,6 +11,7 @@ extern int qflex_loglevel;
 #define QFLEX_LOG_MEM_TRACE     (1 << 2)
 #define QFLEX_LOG_LDST          (1 << 3)
 #define QFLEX_LOG_TB_EXEC       (1 << 4)
+#define QFLEX_LOG_FILE_ACCESS   (1 << 5)
 
 /* Returns true if a bit is set in the current loglevel mask
  */

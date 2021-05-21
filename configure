@@ -469,6 +469,8 @@ gio="$default_feature"
 ######################
 # QFLEX
 qflex="no"
+# DEVTEROFLEX
+devteroflex="no"
 ######################
 
 # parse CC options second
@@ -1576,6 +1578,14 @@ for opt do
   ;;
   --enable-qflex) qflex="yes"
   ;;
+# DEVTEROFLEX
+  --disable-devteroflex) devteroflex="no"
+  ;;
+  --enable-devteroflex) 
+    qflex="yes"
+    devteroflex="yes"
+  ;;
+######################
   *)
       echo "ERROR: unknown option $opt"
       echo "Try '$0 --help' for more information"
@@ -1933,6 +1943,8 @@ disabled with --disable-FEATURE, default is enabled if available
 ######################
 # QFLEX
   qflex           support for QFlex
+# DevteroFlex
+  devteroflex     support for DevteroFlex
 ######################
 NOTE: The object files are built at the place where configure is launched
 EOF
@@ -5357,12 +5369,16 @@ fi
 
 ##########################################
 # QFLEX
-
 if test $qflex = "yes" ; then
   QEMU_CFLAGS="-DCONFIG_QFLEX $QEMU_CFLAGS"
   libqflex=""
 fi
 
+# DEVTEROFLEX
+if test $devteroflex = "yes" ; then
+  QEMU_CFLAGS="-DCONFIG_DEVTEROFLEX $QEMU_CFLAGS"
+  libdevteroflex="-lprotobuf-c -lrt"
+fi
 ##########################################
 
 
@@ -6266,6 +6282,11 @@ fi
 if test "$qflex" = "yes" ; then
   echo "CONFIG_QFLEX=y" >> $config_host_mak
   echo "LIBQFLEX_LIBS=$libqflex" >> $config_host_mak
+fi
+# DEVTEROFLEX
+if test "$devteroflex" = "yes" ; then
+  echo "CONFIG_DEVTEROFLEX=y" >> $config_host_mak
+  echo "LIBDEVTEROFLEX_LIBS=$libdevteroflex" >> $config_host_mak
 fi
 ######################
 

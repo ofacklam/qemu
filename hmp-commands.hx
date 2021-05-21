@@ -1806,4 +1806,36 @@ SRST
   Prints mem-trace results.
 ERST
 
+
+#ifdef CONFIG_DEVTEROFLEX
+    {
+        .name       = "devteroflex-start",
+        .args_type  = "",
+        .params     = "",
+        .help       = "start devteroflex",
+        .cmd        = hmp_devteroflex_start,
+    },
+
+SRST
+``devteroflex-start``
+  start devteroflex.
+ERST
+
+    {
+        .name       = "devteroflex-gen-verification-start",
+        .args_type  = "nb_insn:i",
+        .params     = "nb_insn",
+        .help       = "start tracing of state and modified pages",
+        .cmd        = hmp_devteroflex_gen_verification_start,
+    },
+
+SRST
+``devteroflex-gen-verification-start`` *nb_insn*
+  Run state tracing for *nb_insn*, this state can be used by
+  the Chisel verification infrastructure to test for correctness.
+ERST
+
+#endif
+
+
 #endif

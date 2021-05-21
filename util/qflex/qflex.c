@@ -20,6 +20,9 @@
 #include "qflex/qflex.h"
 #include "qflex/qflex-traces.h"
 
+#ifdef CONFIG_DEVTEROFLEX
+#include "qflex/devteroflex/devteroflex.h"
+#endif
 
 QflexState_t qflexState = {
     .inst_done = false,
@@ -48,7 +51,11 @@ int qflex_adaptative_execution(CPUState *cpu) {
         else if(qflexState.singlestep) {
             qflex_singlestep(cpu);
         }
-    }
+#ifdef CONFIG_DEVTEROFLEX
+        else if(devteroflex_is_running()) {
+            devteroflex_singlestepping_flow();
+        }
+#endif
     }
     return 0;
 }
