@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "qflex-qemu-calls.h": "c",
+        "*.inc": "c",
+        "*.def": "c",
+        "qemu-plugin.h": "c"
+    }
+}

@@ -5234,5 +5234,31 @@ SRST
             (qemu) qom-set /objects/iothread1 poll-max-ns 100000
 ERST
 
+#ifdef CONFIG_QFLEX
+
+// QFLEX extra commands
+DEF("qflex", HAS_ARG, QEMU_OPTION_qflex,
+    "-qflex [singlestep=on|off]\n"
+    "       [singlestep=on|off] Executes a single instruction per iteration\n",
+    QEMU_ARCH_ARM)
+SRST
+``-qflex [singlestep=on|off]``
+    Enable QFLEX options
+
+    ``singlestep=on`` will break main execution loops in `cpu-exec.c`
+    and in the `tcg-accel-ops-rr.c`. It is used to make sure QEMU only
+    executes a single instruction before handing back control.
+ERST
+
+// QFLEX Debug
+DEF("qflex_d", HAS_ARG, QEMU_OPTION_qflex_d,
+    "-qflex_d item1,...    enable logging of specified items (use '-qflex_d help' for a list of log items)\n",
+    QEMU_ARCH_ARM)
+SRST
+``-qflex_d item1[,...]``
+    Enable logging of specified items.
+ERST
+
+#endif /* CONFIG_QFLEX */
 
 HXCOMM This is the last statement. Insert new options before this line!

@@ -1725,3 +1725,34 @@ ERST
         .flags      = "p",
     },
 
+
+#ifdef CONFIG_QFLEX
+
+    {
+        .name       = "qflex-singlestep-start",
+        .args_type  = "",
+        .params     = "",
+        .help       = "start singlestepping",
+        .cmd        = hmp_qflex_singlestep_start,
+    },
+
+SRST
+``qflex-singlestep-start``
+  Start singlestepping, change control flow to QFLEX
+ERST
+
+    {
+        .name       = "qflex-singlestep-stop",
+        .args_type  = "",
+        .params     = "",
+        .help       = "stop singlestepping",
+        .cmd        = hmp_qflex_singlestep_stop,
+    },
+
+SRST
+``qflex-singlestep-stop``
+  Stop singlestepping, change control flow to QFLEX
+ERST
+
+
+#endif

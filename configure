@@ -466,6 +466,10 @@ multiprocess="auto"
 
 malloc_trim="auto"
 gio="$default_feature"
+######################
+# QFLEX
+qflex="no"
+######################
 
 # parse CC options second
 for opt do
@@ -1565,6 +1569,13 @@ for opt do
   ;;
   --disable-gio) gio=no
   ;;
+######################
+# QFLEX
+######################
+  --disable-qflex) qflex="no"
+  ;;
+  --enable-qflex) qflex="yes"
+  ;;
   *)
       echo "ERROR: unknown option $opt"
       echo "Try '$0 --help' for more information"
@@ -1919,7 +1930,10 @@ disabled with --disable-FEATURE, default is enabled if available
   fuse-lseek      SEEK_HOLE/SEEK_DATA support for FUSE exports
   multiprocess    Out of process device emulation support
   gio             libgio support
-
+######################
+# QFLEX
+  qflex           support for QFlex
+######################
 NOTE: The object files are built at the place where configure is launched
 EOF
 exit 0
@@ -5342,6 +5356,15 @@ if test "$have_ubsan" = "yes"; then
 fi
 
 ##########################################
+# QFLEX
+
+if test $qflex = "yes" ; then
+  QEMU_CFLAGS="-DCONFIG_QFLEX $QEMU_CFLAGS"
+  libqflex=""
+fi
+
+##########################################
+
 
 # Exclude --warn-common with TSan to suppress warnings from the TSan libraries.
 if test "$solaris" = "no" && test "$tsan" = "no"; then
@@ -6237,6 +6260,14 @@ fi
 if test "$safe_stack" = "yes"; then
   echo "CONFIG_SAFESTACK=y" >> $config_host_mak
 fi
+
+######################
+# QFLEX
+if test "$qflex" = "yes" ; then
+  echo "CONFIG_QFLEX=y" >> $config_host_mak
+  echo "LIBQFLEX_LIBS=$libqflex" >> $config_host_mak
+fi
+######################
 
 # If we're using a separate build tree, set it up now.
 # DIRS are directories which we simply mkdir in the build tree;

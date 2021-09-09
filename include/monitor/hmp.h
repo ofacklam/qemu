@@ -130,4 +130,8 @@ void hmp_replay_break(Monitor *mon, const QDict *qdict);
 void hmp_replay_delete_break(Monitor *mon, const QDict *qdict);
 void hmp_replay_seek(Monitor *mon, const QDict *qdict);
 
+#ifdef CONFIG_QFLEX
+#include "qflex/qflex-hmp.h"
+#endif
+
 #endif

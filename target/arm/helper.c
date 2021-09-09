@@ -13429,3 +13429,27 @@ void aarch64_sve_change_el(CPUARMState *env, int old_el,
     }
 }
 #endif
+
+#ifdef CONFIG_QFLEX
+#include "qflex-helper.h"
+
+uint64_t gva_to_hva_arch(CPUState *cs, uint64_t vaddr, MMUAccessType access_type) {
+#ifdef CONFIG_USER_ONLY
+    return g2h(vaddr) ? (uint64_t)g2h(vaddr) : -1;
+#endif
+
+    ARMCPU *cpu = ARM_CPU(cs);
+    CPUARMState *env = &cpu->env;
+    void *phys_addr = NULL;
+    unsigned mmu_idx = cpu_mmu_index(env, (access_type == MMU_INST_FETCH));
+
+    phys_addr = tlb_vaddr_to_host(env, vaddr, access_type, mmu_idx);
+
+    if (!phys_addr)
+    {
+        return -1;
+    }
+
+    return (uint64_t) phys_addr;
+}
+#endif

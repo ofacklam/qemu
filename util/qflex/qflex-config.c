@@ -1,0 +1,78 @@
+#include "qemu/osdep.h"
+#include "qemu/thread.h"
+
+#include "qapi/error.h"
+#include "qemu-common.h"
+#include "qemu/error-report.h"
+#include "qapi/qmp/qerror.h"
+#include "qemu/option_int.h"
+#include "qemu/config-file.h"
+#include "qemu-options.h"
+#include "qemu/main-loop.h"
+
+#include "sysemu/tcg.h"
+
+#include "qflex/qflex-config.h"
+#include "qflex/qflex.h"
+#include "qflex/qflex-log.h"
+
+QemuOptsList qemu_qflex_opts = {
+    .name = "qflex",
+    .merge_lists = true,
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_qflex_opts.head),
+    .desc = {
+        {
+            .name = "singlestep",
+            .type = QEMU_OPT_BOOL,
+
+        },
+        { /* end of list */ }
+    },
+};
+
+static void qflex_configure(QemuOpts *opts, Error **errp) {
+    qflexState.singlestep = qemu_opt_get_bool(opts, "singlestep", false);
+    if(qflexState.singlestep) {
+        int error = 0;
+        if(!tcg_enabled()) {
+            error_report("`singlestep` available only with TCG.");
+            error |= 1;
+        }
+        if(!qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN)) {
+            error_report("`singlestep` available only with `-d nochain`.");
+            error |= 1;
+        }
+        if(error)
+            exit(1);
+    }
+}
+
+static void qflex_log_configure(const char *opts) {
+    int mask;
+    mask = qflex_str_to_log_mask(opts);
+    if (!mask) {
+        qflex_print_log_usage(opts, stdout);
+        exit(1);
+    }
+    qflex_set_log(mask);
+}
+
+int qflex_parse_opts(int index, const char *optarg, Error **errp) {
+    QemuOpts *opts;
+
+    switch(index) {
+    case QEMU_OPTION_qflex:
+        opts = qemu_opts_parse_noisily(
+            qemu_find_opts("qflex"), optarg, false);
+        if (!opts) { exit(1); }
+        qflex_configure(opts, errp);
+        qemu_opts_del(opts);
+        break;
+    case QEMU_OPTION_qflex_d:
+        qflex_log_configure(optarg);
+        break;
+    default:
+        return 0;
+    }
+    return 1;
+}

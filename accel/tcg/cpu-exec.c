@@ -43,6 +43,11 @@
 #include "sysemu/replay.h"
 #include "internal.h"
 
+#ifdef CONFIG_QFLEX
+#include "qflex/qflex.h"
+#include "qflex/qflex-arch.h"
+#endif
+
 /* -icount align implementation. */
 
 typedef struct SyncClocks {
@@ -799,6 +804,28 @@ int cpu_exec(CPUState *cpu)
             /* Try to align the host and virtual clocks
                if the guest is in advance */
             align_clocks(&sc, cpu);
+
+#ifdef CONFIG_QFLEX
+            /* Depending on execution type, break the main loop */
+            switch (qflex_is_type()) {
+            case SINGLESTEP:
+                qflex_update_inst_done(true);
+                goto break_loop;
+                break;
+
+            case QEMU:
+                break;
+
+            default:
+                fprintf(stdout, "QFLEX execution loop type switch statement should be exaustive\n");
+                exit(1);
+
+            break_loop:
+                qatomic_set(&cpu->exit_request, 1);
+                fprintf(stdout, "Broke loop.");
+                qflex_update_broke_loop(true);
+            }
+#endif
         }
     }
 
@@ -858,3 +885,12 @@ void dump_drift_info(void)
 }
 
 #endif /* !CONFIG_USER_ONLY */
+
+#ifdef CONFIG_QFLEX
+void qflex_tb_flush(void) {
+    CPUState *cpu;
+    CPU_FOREACH(cpu) {
+        tb_flush(cpu);
+    }
+}
+#endif

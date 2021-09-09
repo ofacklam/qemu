@@ -36,6 +36,10 @@
 #include "tcg-accel-ops-rr.h"
 #include "tcg-accel-ops-icount.h"
 
+#ifdef CONFIG_QFLEX
+#include "qflex/qflex.h"
+#endif /* CONFIG_QFLEX */
+
 /* Kick all RR vCPUs */
 void rr_kick_vcpu_thread(CPUState *unused)
 {
@@ -261,6 +265,89 @@ static void *rr_cpu_thread_fn(void *arg)
     rcu_unregister_thread();
     return NULL;
 }
+
+#ifdef CONFIG_QFLEX
+// See rr_cpu_thread_fn
+int qflex_cpu_step(void *arg)
+{
+    CPUState * cpu = (CPUState *) arg;
+    int r = 0;
+
+    qemu_mutex_unlock_iothread();
+    replay_mutex_lock();
+    qemu_mutex_lock_iothread();
+
+    if (icount_enabled()) {
+        /* Account partial waits to QEMU_CLOCK_VIRTUAL.  */
+        icount_account_warp_timer();
+        /*
+         * Run the timers here.  This is much more efficient than
+         * waking up the I/O thread and waiting for completion.
+         */
+        icount_handle_deadline();
+    }
+
+    replay_mutex_unlock();
+
+    while (cpu && cpu_work_list_empty(cpu) && !cpu->exit_request) {
+
+        qatomic_mb_set(&rr_current_cpu, cpu);
+        current_cpu = cpu;
+
+        qemu_clock_enable(QEMU_CLOCK_VIRTUAL,
+                          (cpu->singlestep_enabled & SSTEP_NOTIMER) == 0);
+
+        if (cpu_can_run(cpu)) {
+
+            qemu_mutex_unlock_iothread();
+            if (icount_enabled()) {
+                icount_prepare_for_run(cpu);
+            }
+            r = tcg_cpus_exec(cpu);
+            if (icount_enabled()) {
+                icount_process_data(cpu);
+            }
+            qemu_mutex_lock_iothread();
+
+            if (r == EXCP_DEBUG) {
+                cpu_handle_guest_debug(cpu);
+                break;
+            } else if (r == EXCP_ATOMIC) {
+                qemu_mutex_unlock_iothread();
+                cpu_exec_step_atomic(cpu);
+                qemu_mutex_lock_iothread();
+                break;
+            }
+        } else if (cpu->stop) {
+            if (cpu->unplug) {
+                // cpu = CPU_NEXT(cpu);
+            }
+            break;
+        }
+
+        // cpu = CPU_NEXT(cpu);
+    } /* while (cpu && !cpu->exit_request).. */
+
+    /* Does not need qatomic_mb_set because a spurious wakeup is okay.  */
+    qatomic_set(&rr_current_cpu, NULL);
+
+    if (cpu && cpu->exit_request) {
+        qatomic_mb_set(&cpu->exit_request, 0);
+    }
+
+    if (icount_enabled() && all_cpu_threads_idle()) {
+        /*
+         * When all cpus are sleeping (e.g in WFI), to avoid a deadlock
+         * in the main_loop, wake it up in order to start the warp timer.
+         */
+        qemu_notify_event();
+    }
+
+    rr_wait_io_event();
+    rr_deal_with_unplugged_cpus();
+    return r;
+}
+#endif
 
 void rr_start_vcpu_thread(CPUState *cpu)
 {
