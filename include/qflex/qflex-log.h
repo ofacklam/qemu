@@ -8,6 +8,9 @@ extern int qflex_loglevel;
 
 #define QFLEX_LOG_GENERAL       (1 << 0)
 #define QFLEX_LOG_MAGIC_INST    (1 << 1)
+#define QFLEX_LOG_MEM_TRACE     (1 << 2)
+#define QFLEX_LOG_LDST          (1 << 3)
+#define QFLEX_LOG_TB_EXEC       (1 << 4)
 
 /* Returns true if a bit is set in the current loglevel mask
  */

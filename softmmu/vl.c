@@ -2665,6 +2665,7 @@ void qemu_init(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_action_opts);
 #ifdef CONFIG_QFLEX
     qemu_add_opts(&qemu_qflex_opts);
+	qemu_add_opts(&qemu_qflex_gen_mem_trace_opts);
 #endif
 
     module_call_init(MODULE_INIT_OPTS);

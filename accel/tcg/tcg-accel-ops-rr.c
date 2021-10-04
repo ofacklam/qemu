@@ -233,6 +233,12 @@ static void *rr_cpu_thread_fn(void *arg)
                     qemu_mutex_lock_iothread();
                     break;
                 }
+#ifdef CONFIG_QFLEX
+                else if (r == EXCP_QFLEX_EXIT) {
+                    qemu_log("Exiting main loop for QFlex\n");
+                    break;
+                }
+#endif
             } else if (cpu->stop) {
                 if (cpu->unplug) {
                     cpu = CPU_NEXT(cpu);
@@ -260,6 +266,11 @@ static void *rr_cpu_thread_fn(void *arg)
 
         rr_wait_io_event();
         rr_deal_with_unplugged_cpus();
+#ifdef CONFIG_QFLEX
+        if(qflex_is_exit_main_loop()) {
+        	qflex_adaptative_execution(first_cpu);
+        }
+#endif
     }
 
     rcu_unregister_thread();
@@ -289,45 +300,64 @@ int qflex_cpu_step(void *arg)
 
     replay_mutex_unlock();
 
-    while (cpu && cpu_work_list_empty(cpu) && !cpu->exit_request) {
+    /* TODO: Normal while loop checks for these two variables
+    if(!cpu_work_list_empty(cpu)) {
+        static int IDLE_CODE = 0x234235;
+        r = IDLE_CODE;
+        goto break_cpu;
+    }
 
-        qatomic_mb_set(&rr_current_cpu, cpu);
-        current_cpu = cpu;
+    if(!cpu->exit_request) {
+        static int EXITED_REQUEST_ACTIVE = 0x31324235;
+        r = EXITED_REQUEST_ACTIVE;
+        goto break_cpu;
+    }
+    */
 
-        qemu_clock_enable(QEMU_CLOCK_VIRTUAL,
-                          (cpu->singlestep_enabled & SSTEP_NOTIMER) == 0);
+    qatomic_mb_set(&rr_current_cpu, cpu);
+    current_cpu = cpu;
 
-        if (cpu_can_run(cpu)) {
+    qemu_clock_enable(QEMU_CLOCK_VIRTUAL,
+                      (cpu->singlestep_enabled & SSTEP_NOTIMER) == 0);
 
-            qemu_mutex_unlock_iothread();
-            if (icount_enabled()) {
-                icount_prepare_for_run(cpu);
-            }
-            r = tcg_cpus_exec(cpu);
-            if (icount_enabled()) {
-                icount_process_data(cpu);
-            }
-            qemu_mutex_lock_iothread();
+    if (cpu_can_run(cpu)) {
 
-            if (r == EXCP_DEBUG) {
-                cpu_handle_guest_debug(cpu);
-                break;
-            } else if (r == EXCP_ATOMIC) {
-                qemu_mutex_unlock_iothread();
-                cpu_exec_step_atomic(cpu);
-                qemu_mutex_lock_iothread();
-                break;
-            }
-        } else if (cpu->stop) {
-            if (cpu->unplug) {
-                // cpu = CPU_NEXT(cpu);
-            }
-            break;
+        qemu_mutex_unlock_iothread();
+        if (icount_enabled()) {
+            icount_prepare_for_run(cpu);
         }
+        r = tcg_cpus_exec(cpu);
+        if (icount_enabled()) {
+            icount_process_data(cpu);
+        }
+        qemu_mutex_lock_iothread();
 
-        // cpu = CPU_NEXT(cpu);
-    } /* while (cpu && !cpu->exit_request).. */
+        if (r == EXCP_DEBUG) {
+            // Singlestepping enabled by QFlex has no gdb attached
+            //cpu_handle_guest_debug(cpu);
+            goto break_cpu;
+        } else if (r == EXCP_ATOMIC) {
+            qemu_mutex_unlock_iothread();
+            cpu_exec_step_atomic(cpu);
+            qemu_mutex_lock_iothread();
+            goto break_cpu;
+        }
+    } else if (cpu->stop) {
+        if (cpu->unplug) {
+            static int CPU_UNPLUGGED = 0x123564;
+            r = CPU_UNPLUGGED;
+            goto break_cpu;
+        }
+        static int CPU_STOPPED = 0x143242;
+        r = CPU_STOPPED;
+        goto break_cpu;
+    } else {
+        static int CPU_CANT_RUN= 0x14321423;
+        r = CPU_CANT_RUN;
+        goto break_cpu;
+    }
 
+break_cpu:
     /* Does not need qatomic_mb_set because a spurious wakeup is okay.  */
     qatomic_set(&rr_current_cpu, NULL);
 

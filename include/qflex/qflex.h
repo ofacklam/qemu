@@ -11,21 +11,12 @@
 
 #define QFLEX(name)       glue(qflex_, name)
 
-/** NOTE for cpu_exec (accel/tcg/cpu_exec.c)
-  * Depending on the desired type of execution,
-  * cpu_exec should break from the double while loop
-  * in the correct manner.
-  */
-typedef enum {
-    SINGLESTEP, // Breaks when a single TB (instruction) is executed
-    QEMU        // Normal qemu execution
-} QFlexExecType_t;
-
 typedef struct QflexState_t {
-    QFlexExecType_t exec_type;
+    bool singlestep;
     bool inst_done;
     bool broke_loop;
-    bool singlestep;
+    bool exit_main_loop;
+    bool skip_interrupts;
 } QflexState_t;
 
 extern QflexState_t qflexState;
@@ -38,7 +29,6 @@ int qflex_singlestep(CPUState *cpu);
 
 /** qflex_adaptative_execution
  * This executes normal qemu till a different mode flag is set.
- * For the moment only profiling is supported.
  */
 int qflex_adaptative_execution(CPUState *cpu);
 
@@ -48,21 +38,24 @@ int qflex_cpu_step(void *arg);
 
 /* Get and Setters for state flags and vars
  */
-static inline QflexState_t qflex_get_state(void)   { return qflexState; }
-static inline QFlexExecType_t qflex_is_type(void)   { return qflexState.exec_type; }
-static inline bool qflex_is_inst_done(void)         { return qflexState.inst_done; }
-static inline bool qflex_is_broke_loop(void)        { return qflexState.broke_loop; }
+static inline QflexState_t qflex_get_state(void)  { return qflexState; }
+static inline bool qflex_is_inst_done(void)       { return qflexState.inst_done; }
+static inline bool qflex_is_broke_loop(void)      { return qflexState.broke_loop; }
+static inline bool qflex_is_exit_main_loop(void)  { return qflexState.exit_main_loop; }
+static inline bool qflex_is_skip_interrupts(void)  { return qflexState.skip_interrupts; }
 
 static inline void qflex_update_inst_done(bool done) {
     qflexState.inst_done = done; }
 static inline void qflex_update_broke_loop(bool broke) {
     qflexState.broke_loop = broke; }
-static inline void qflex_update_exec_type(QFlexExecType_t type) {
-    qflexState.exec_type = type; }
+static inline void qflex_update_exit_main_loop(bool exit) { 
+    qflexState.exit_main_loop = exit; }
+static inline void qflex_update_skip_interrupts(bool skip) { 
+    qflexState.skip_interrupts = skip; }
 
-static inline bool qflex_is_singlestep(void) { return qflexState.exec_type == SINGLESTEP; }
-static inline void qflex_singlestep_start(void) {  qflexState.exec_type = SINGLESTEP; }
-static inline void qflex_singlestep_stop(void) {  qflexState.exec_type = QEMU; }
+static inline bool qflex_is_singlestep(void) { return qflexState.singlestep; }
+static inline void qflex_singlestep_start(void) {  qflexState.singlestep = true; }
+static inline void qflex_singlestep_stop(void) {  qflexState.singlestep = false; }
 
 
 /* Located in cpu-exec.c

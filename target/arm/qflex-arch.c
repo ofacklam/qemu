@@ -16,13 +16,18 @@ int      QFLEX_GET_ARCH(el)(CPUState *cs) { return arm_current_el(ENV(cs)); }
  * BADDR: bits [47:1]
  * CnP:   bit  [0]
  */
-uint64_t QFLEX_GET_ARCH(pid)(CPUState *cs) {
+uint64_t QFLEX_GET_ARCH(asid)(CPUState *cs) {
     int curr_el = arm_current_el(ENV(cs)); // Necessary?
     if (true /* TODO */) {
         return ENV(cs)->cp15.ttbr0_el[curr_el] >> 48;
     } else {
         return ENV(cs)->cp15.ttbr1_el[curr_el] >> 48;
     }
+}
+
+uint64_t QFLEX_GET_ARCH(tid)(CPUState *cs) {
+    int curr_el = arm_current_el(ENV(cs)); // Necessary?
+    return ENV(cs)->cp15.tpidr_el[curr_el];
 }
 
 uint64_t gva_to_hva(CPUState *cs, uint64_t addr, int access_type) {

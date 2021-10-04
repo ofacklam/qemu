@@ -577,7 +577,23 @@ static inline bool cpu_handle_interrupt(CPUState *cpu,
      */
     qatomic_mb_set(&cpu_neg(cpu)->icount_decr.u16.high, 0);
 
+#ifdef CONFIG_QFLEX
+    if (qflex_is_exit_main_loop()) {
+       cpu->exception_index = EXCP_QFLEX_EXIT;
+        qemu_log("QFLEX: Catched exit loop request.\n");
+        return true;
+    }
+#endif
+    /* TODO: Get rid of non application critical interrupts by instructing the OS
+     * and pinning applications, currently this is a hack that could break functional
+     * correctness if the application itself requires interrupts.
+     * This follow execution path similar tor qemu's internal singlestepping.
+     */
+#ifdef CONFIG_QFLEX
+    if (unlikely(qatomic_read(&cpu->interrupt_request)) && !qflex_is_skip_interrupts()) {
+#else
     if (unlikely(qatomic_read(&cpu->interrupt_request))) {
+#endif
         int interrupt_request;
         qemu_mutex_lock_iothread();
         interrupt_request = cpu->interrupt_request;
@@ -804,33 +820,15 @@ int cpu_exec(CPUState *cpu)
             /* Try to align the host and virtual clocks
                if the guest is in advance */
             align_clocks(&sc, cpu);
-
-#ifdef CONFIG_QFLEX
-            /* Depending on execution type, break the main loop */
-            switch (qflex_is_type()) {
-            case SINGLESTEP:
-                qflex_update_inst_done(true);
-                goto break_loop;
-                break;
-
-            case QEMU:
-                break;
-
-            default:
-                fprintf(stdout, "QFLEX execution loop type switch statement should be exaustive\n");
-                exit(1);
-
-            break_loop:
-                qatomic_set(&cpu->exit_request, 1);
-                fprintf(stdout, "Broke loop.");
-                qflex_update_broke_loop(true);
-            }
-#endif
         }
     }
 
     cpu_exec_exit(cpu);
     rcu_read_unlock();
+
+    if (ret == EXCP_QFLEX_EXIT) {
+        qemu_log_mask(QFLEX_LOG_GENERAL, "QFLEX: Exiting cpu-exec.\n");
+    }
 
     return ret;
 }

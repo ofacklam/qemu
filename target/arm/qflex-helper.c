@@ -7,6 +7,7 @@
 #include "qflex/qflex.h"
 #include "qflex-helper.h"
 #include "qflex/qflex-helper-a64.h"
+#include "qflex/qflex-traces.h"
 
 /* TCG helper functions. (See exec/helper-proto.h  and target/arch/helper-a64.h)
  * This one expands prototypes for the helper functions.
@@ -33,7 +34,15 @@
 #include "qflex/qflex-qemu-calls.h"
 static uint64_t prev_nop_op = 0;
 
-static inline void qflex_cmds(uint64_t nop_op) {
+static inline void qflex_mem_trace_cmds(CPUState *cs, uint64_t nop_op) {
+    switch(nop_op) {
+        case MEM_TRACE_START:   qflex_mem_trace_start(1 << 9, QFLEX_LOG_TINY_INST); break;
+        case MEM_TRACE_STOP:    qflex_mem_trace_stop();       break;
+        case MEM_TRACE_RESULTS: qflex_mem_trace_log_direct(); break;
+    }
+}
+
+static inline void qflex_cmds(CPUState *cs, uint64_t nop_op) {
     switch(nop_op) {
         case QFLEX_SINGLESTEP_START: qflex_singlestep_start(); break;
         case QFLEX_SINGLESTEP_STOP: qflex_singlestep_stop(); break;
@@ -52,7 +61,12 @@ void HELPER(qflex_magic_inst)(CPUARMState *env, uint64_t nop_op) {
     switch(prev_nop_op) {
 
         case QFLEX_OP:
-            qflex_cmds(nop_op);
+            qflex_cmds(cs, nop_op);
+            prev_nop_op = 0;
+            return; // HELPER EXIT
+
+        case MEM_TRACE_OP: 
+            qflex_mem_trace_cmds(cs, nop_op);
             prev_nop_op = 0;
             return; // HELPER EXIT
 
@@ -62,6 +76,70 @@ void HELPER(qflex_magic_inst)(CPUARMState *env, uint64_t nop_op) {
     // Get chained nop_op op type
     switch(nop_op) {
         case QFLEX_OP: prev_nop_op = QFLEX_OP; break;
+        case MEM_TRACE_OP: prev_nop_op = MEM_TRACE_OP; break;
         default: prev_nop_op = 0; break;
     }
 }
+
+/**
+ * @brief HELPER(qflex_mem_trace)
+ * Helper gets executed before a LD/ST
+ */
+void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
+	CPUState *cs = CPU(env_archcpu(env));
+	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%"PRIu64":0x%016"PRIx64"\n", cs->cpu_index, type, addr);
+    
+    int inst;
+    if(qflex_mem_trace_gen_trace()) {
+        uint64_t paddr = gva_to_hva(cs, addr, type);
+        if (paddr != -1)  {
+            qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, type, arm_current_el(env));
+            if (type == MMU_INST_FETCH) {
+                inst = *(uint32_t *) paddr;
+                QflexInstTraceFull_t trace = {
+                    .cpu_index = cs->cpu_index, 
+                    .asid = QFLEX_GET_ARCH(asid)(cs), 
+                    .tid = QFLEX_GET_ARCH(tid)(cs), 
+                    .pc = addr, 
+                    .inst = inst
+                };
+                switch(qflexTraceState.gen_inst_trace_type) {
+                    case QFLEX_LOG_TINY_INST:     qflex_inst_trace(cs->cpu_index, QFLEX_GET_ARCH(asid)(cs), inst); break;
+                    case QFLEX_LOG_GEN_FULL_INST: 
+                        qflex_inst_trace_full(trace); 
+                        break;
+                }
+            }
+        }
+	}
+}
+
+/**
+ * @brief HELPER(qflex_executed_instruction)
+ * location: location of the gen_helper_ in the transalation.
+ *           EXEC_IN : Started executing a TB
+ */
+void HELPER(qflex_executed_instruction)(CPUARMState* env, uint64_t pc, int location) {
+    CPUState *cs = CPU(env_archcpu(env));
+
+    switch(location) {
+        case QFLEX_EXEC_IN:
+            if(unlikely(qflex_loglevel_mask(QFLEX_LOG_TB_EXEC))) {
+                FILE* logfile = qemu_log_lock();
+                qemu_log("IN[%d]  :", cs->cpu_index);
+                log_target_disas(cs, pc, 4);
+                qemu_log_unlock(logfile);
+            }
+            qflex_update_inst_done(true);
+            break;
+        default: break;
+    }
+}
+
+/**
+ * @brief HELPER(qflex_exception_return)
+ * This helper gets called after a ERET TB execution is done.
+ * The env passed as argument has already changed EL and jumped to the ELR.
+ * For the moment not needed.
+ */
+void HELPER(qflex_exception_return)(CPUARMState *env) { return; }

@@ -17,33 +17,38 @@
 #include "qemu/option_int.h"
 #include "qemu/main-loop.h"
 
-#include "qflex/qflex-config.h"
 #include "qflex/qflex.h"
+#include "qflex/qflex-traces.h"
+
 
 QflexState_t qflexState = {
     .inst_done = false,
     .broke_loop = false,
     .singlestep = false,
-    .exec_type = QEMU
+    .exit_main_loop = false,
+    .skip_interrupts = false
 };
 
 int qflex_singlestep(CPUState *cpu) {
-    int ret = 0;
-    qflex_update_exec_type(SINGLESTEP);
+    int ret;
+    ret = qflex_cpu_step(cpu);
 
-    while(!qflex_is_inst_done()) {
-        ret = qflex_cpu_step(cpu);
+    if(ret) {
+        qemu_log("QFLEX: Singlestep went wrong\n");
     }
-
-    qflex_update_inst_done(false);
 
     return ret;
 }
 
 int qflex_adaptative_execution(CPUState *cpu) {
     while(1) {
-        if(qflex_is_singlestep()) {
+        if(!qflex_is_exit_main_loop()) {
+            break;
+        } 
+        else if(qflexState.singlestep) {
             qflex_singlestep(cpu);
         }
     }
+    }
+    return 0;
 }

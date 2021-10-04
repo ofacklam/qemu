@@ -3,4 +3,5 @@ qflex_ss.add([files(
   'qflex.c',
   'qflex-config.c',
   'qflex-hmp.c',
+  'qflex-traces.c'
 ), qflex])

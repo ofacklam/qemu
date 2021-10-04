@@ -15,6 +15,7 @@
 #include "qflex/qflex-config.h"
 #include "qflex/qflex.h"
 #include "qflex/qflex-log.h"
+#include "qflex/qflex-traces.h"
 
 QemuOptsList qemu_qflex_opts = {
     .name = "qflex",
@@ -30,19 +31,32 @@ QemuOptsList qemu_qflex_opts = {
     },
 };
 
+QemuOptsList qemu_qflex_gen_mem_trace_opts = {
+    .name = "qflex-gen-mem-trace",
+    .merge_lists = true,
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_qflex_gen_mem_trace_opts.head),
+    .desc = {
+        {
+            .name = "core_count",
+            .type = QEMU_OPT_NUMBER,
+        },
+        { /* end of list */ }
+    },
+};
+
 static void qflex_configure(QemuOpts *opts, Error **errp) {
     qflexState.singlestep = qemu_opt_get_bool(opts, "singlestep", false);
-    if(qflexState.singlestep) {
+    if (qflexState.singlestep) {
         int error = 0;
-        if(!tcg_enabled()) {
+        if (!tcg_enabled()) {
             error_report("`singlestep` available only with TCG.");
             error |= 1;
         }
-        if(!qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN)) {
+        if (!qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN)) {
             error_report("`singlestep` available only with `-d nochain`.");
             error |= 1;
         }
-        if(error)
+        if (error)
             exit(1);
     }
 }
@@ -55,6 +69,11 @@ static void qflex_log_configure(const char *opts) {
         exit(1);
     }
     qflex_set_log(mask);
+}
+
+static void qflex_gen_mem_trace_configure(QemuOpts *opts, Error **errp) {
+    int core_count = qemu_opt_get_number(opts, "core_count", 1);
+	qflex_mem_trace_init(core_count);
 }
 
 int qflex_parse_opts(int index, const char *optarg, Error **errp) {
@@ -70,6 +89,13 @@ int qflex_parse_opts(int index, const char *optarg, Error **errp) {
         break;
     case QEMU_OPTION_qflex_d:
         qflex_log_configure(optarg);
+        break;
+    case QEMU_OPTION_qflex_gen_mem_trace:
+        opts = qemu_opts_parse_noisily(
+                qemu_find_opts("qflex-gen-mem-trace"), optarg, false);
+        if(!opts) { exit(1); }
+        qflex_gen_mem_trace_configure(opts, errp);
+        qemu_opts_del(opts);
         break;
     default:
         return 0;
