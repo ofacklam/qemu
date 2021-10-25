@@ -3,6 +3,7 @@ devteroflex_ss.add([files(
    'file-ops.c',
    'page-demander.c',
    'verification.c',
+   'custom-instrumentation.c',
    'devteroflex.c',
  ), devteroflex])
 

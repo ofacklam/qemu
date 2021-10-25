@@ -1835,6 +1835,20 @@ SRST
   the Chisel verification infrastructure to test for correctness.
 ERST
 
+    {
+        .name       = "devteroflex-gen-example",
+        .args_type  = "op:s,nb_insn:i",
+        .params     = "op nb_insn",
+        .help       = "start/stop example helper callbacks",
+        .cmd        = hmp_devteroflex_gen_example,
+    },
+
+SRST
+``devteroflex-gen-example [ start | stop ]`` *nb_insn*
+  Run example helper callbacks for *nb_insn*. This is an example
+  of instrumenting QEMU instruction execution.
+ERST
+
 #endif
 
 

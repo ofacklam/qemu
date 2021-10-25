@@ -12,6 +12,7 @@ void hmp_qflex_mem_trace_log_stats(Monitor *mon, const QDict *qdict);
 #ifdef CONFIG_DEVTEROFLEX
 void hmp_devteroflex_start(Monitor *mon, const QDict *qdict);
 void hmp_devteroflex_gen_verification_start(Monitor *mon, const QDict *qdict);
+void hmp_devteroflex_gen_example(Monitor *mon, const QDict *qdict);
 #endif
 
 #endif

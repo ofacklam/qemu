@@ -48,6 +48,10 @@
 #define GEN_QFLEX_HELPER(cond, func)
 #endif // CONFIG_QFLEX
 
+#ifdef CONFIG_DEVTEROFLEX
+#include "qflex/devteroflex/custom-instrumentation.h"
+#endif
+
 static TCGv_i64 cpu_X[32];
 static TCGv_i64 cpu_pc;
 
@@ -285,6 +289,8 @@ static TCGv_i64 gen_mte_check1_mmuidx(DisasContext *s, TCGv_i64 addr,
         tcg_desc = tcg_const_i32(desc);
 
         ret = new_tmp_a64(s);
+        GEN_QFLEX_HELPER(devteroflexGen.example, GEN_HELPER(devteroflex_example_instrumentation)( 
+                         cpu_env, tcg_const_i64(TAG_MTE_OPERATION), addr));
         gen_helper_mte_check1(ret, cpu_env, tcg_desc, addr);
         tcg_temp_free_i32(tcg_desc);
 
@@ -2345,6 +2351,8 @@ static void disas_uncond_b_reg(DisasContext *s, uint32_t insn)
             gen_io_start();
         }
 
+        GEN_QFLEX_HELPER(devteroflexGen.example, GEN_HELPER(devteroflex_example_instrumentation)( 
+                         cpu_env, tcg_const_i64(TAG_EXCEPTION_RETURN), dst));
         gen_helper_exception_return(cpu_env, dst);
         tcg_temp_free_i64(dst);
         /* Must exit loop to check un-masked IRQs */
@@ -14628,12 +14636,19 @@ static void disas_a64_insn(CPUARMState *env, DisasContext *s)
     uint32_t insn;
 
     s->pc_curr = s->base.pc_next;
-	GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace)( 
-					 cpu_env, tcg_const_i64(s->base.pc_next), tcg_const_i64(MMU_INST_FETCH)));
+    GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace)( 
+                     cpu_env, tcg_const_i64(s->base.pc_next), tcg_const_i64(MMU_INST_FETCH)));
     insn = arm_ldl_code(env, s->base.pc_next, s->sctlr_b);
     s->insn = insn;
     s->base.pc_next += 4;
 
+    /**
+     * Inserting a function callbacks will slowdown significantly excecution, 
+     * to not slowdown constantly, we should insert the helper only when intented. 
+     */
+    GEN_QFLEX_HELPER(devteroflexGen.example, GEN_HELPER(devteroflex_example_instrumentation)( 
+                     cpu_env, tcg_const_i64(TAG_INSTRUCTION_DECODED), tcg_const_i64(s->base.pc_next)));
+ 
     s->fp_access_checked = false;
     s->sve_access_checked = false;
 

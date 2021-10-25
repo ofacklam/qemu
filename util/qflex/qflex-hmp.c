@@ -56,6 +56,7 @@ void hmp_qflex_mem_trace_log_stats(Monitor *mon, const QDict *qdict) {
 #ifdef CONFIG_DEVTEROFLEX
 #include "qflex/devteroflex/devteroflex.h"
 #include "qflex/devteroflex/verification.h"
+#include "qflex/devteroflex/custom-instrumentation.h"
 void hmp_devteroflex_start(Monitor *mon, const QDict *qdict) {
     devteroflex_init(true, true);
 }
@@ -63,5 +64,19 @@ void hmp_devteroflex_start(Monitor *mon, const QDict *qdict) {
 void hmp_devteroflex_gen_verification_start(Monitor *mon, const QDict *qdict) {
     size_t nb_insn = qdict_get_int(qdict, "nb_insn");
     gen_verification_start(nb_insn);
+}
+
+void hmp_devteroflex_gen_example(Monitor *mon, const QDict *qdict) {
+    size_t nb_insn = qdict_get_int(qdict, "nb_insn");
+    const char *op = qdict_get_str(qdict, "op");
+    if(strcmp(op, "start") == 0) {
+        monitor_printf(mon, "DevteroFlex: start gen example helper for %li instructions\n", nb_insn);
+        devteroflex_gen_example_set(true, nb_insn);
+    } else if (strcmp(op, "stop") == 0) {
+        monitor_printf(mon, "DevteroFlex: stop gen example helper\n");
+        devteroflex_gen_example_set(false, 0);
+    } else {
+        monitor_printf(mon, "Devteroflex: Unexpected 'op' parameter [start | stop]\n");
+    }
 }
 #endif
