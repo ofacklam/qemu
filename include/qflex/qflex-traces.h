@@ -13,6 +13,7 @@ typedef struct QflexTraceState_t {
 #ifdef CONFIG_DEVTEROFLEX
     FILE** traceFiles;
     FILE** instFiles;
+    bool fileInit;
 #endif
     size_t total_insts;
     size_t total_mem;

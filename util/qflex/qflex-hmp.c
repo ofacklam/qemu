@@ -36,6 +36,12 @@ void hmp_qflex_singlestep_stop(Monitor *mon, const QDict *qdict) {
 void hmp_qflex_mem_trace_start(Monitor *mon, const QDict *qdict) {
     size_t nb_insn = qdict_get_int(qdict, "nb_insn");
     int trace_type = qdict_get_int(qdict, "trace_type");
+    if(!qflexTraceState.fileInit) {
+        monitor_printf(mon, "Trace buffer files are not opened.\n"
+                            "Please add `-qflex-gen-mem-trace core_count=YOUR_NB_OF_CORES`"
+                            "argument to qemu before launching.\n");
+        return;
+    }
     qflex_mem_trace_start(nb_insn, trace_type);
 }
 

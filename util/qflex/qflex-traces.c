@@ -27,6 +27,7 @@ QflexTraceState_t qflexTraceState = {
 #ifdef CONFIG_DEVTEROFLEX
     .traceFiles = NULL,
     .instFiles = NULL,
+    .fileInit = false,
 #endif
     .total_insts = 0,
     .total_mem = 0,
@@ -47,6 +48,7 @@ void qflex_mem_trace_init(int core_count) {
 
 #ifdef CONFIG_DEVTEROFLEX
     qflexTraceState.traceFiles = calloc(core_count, sizeof(FILE*));
+    qflexTraceState.fileInit = true;
     char filename[sizeof "mem_trace_00"];
     for(int i = 0; i < core_count; i++) {
         if(i > 64) exit(1);
