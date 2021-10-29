@@ -74,14 +74,14 @@ void qflex_inst_trace(uint32_t cpu_index, uint64_t asid, uint32_t inst) {
 #ifdef CONFIG_DEVTEROFLEX
     file_stream_write(qflexTraceState.instFiles[cpu_index], &inst, sizeof(inst));
 #endif
-    qemu_log("CPU[%"PRIu32"]:ASID[%"PRIu64"]:INST[0x%016"PRIx32"]\n", cpu_index, asid, inst);
+    qflex_log_mask(QFLEX_LOG_FILE_ACCESS, "CPU[%"PRIu32"]:ASID[%"PRIu64"]:INST[0x%016"PRIx32"]\n", cpu_index, asid, inst);
 }
 
 void qflex_inst_trace_full(QflexInstTraceFull_t trace) {
 #ifdef CONFIG_DEVTEROFLEX
     file_stream_write(qflexTraceState.instFiles[trace.cpu_index], &trace, sizeof(QflexInstTraceFull_t));
 #endif
-    qemu_log("CPU[%"PRIu32"]:ASID[%04"PRIu64"]:TID[%04"PRIu64"]:PC[0x%016"PRIx64"]:INST[0x%08"PRIx32"]\n", trace.cpu_index, trace.asid, trace.tid, trace.pc, trace.inst);
+    qflex_log_mask(QFLEX_LOG_FILE_ACCESS, "CPU[%"PRIu32"]:ASID[%04"PRIu64"]:TID[%04"PRIu64"]:PC[0x%016"PRIx64"]:INST[0x%08"PRIx32"]\n", trace.cpu_index, trace.asid, trace.tid, trace.pc, trace.inst);
 }
 
 typedef struct MemTraceReq_t {
