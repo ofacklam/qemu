@@ -843,7 +843,7 @@ int cpu_exec(CPUState *cpu)
     rcu_read_unlock();
 
     if (ret == EXCP_QFLEX_EXIT) {
-        qemu_log_mask(QFLEX_LOG_GENERAL, "QFLEX: Exiting cpu-exec.\n");
+        qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: Exiting cpu-exec.\n");
     }
 
     return ret;

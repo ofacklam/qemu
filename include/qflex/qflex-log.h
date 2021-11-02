@@ -4,7 +4,11 @@
 #include "qemu/osdep.h"
 #include "qemu/log.h"
 
+#ifdef CONFIG_QFLEX
 extern int qflex_loglevel;
+#else
+static int qflex_loglevel = 0;
+#endif
 
 #define QFLEX_LOG_GENERAL       (1 << 0)
 #define QFLEX_LOG_MAGIC_INST    (1 << 1)
