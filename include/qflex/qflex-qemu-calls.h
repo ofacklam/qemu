@@ -38,6 +38,7 @@
 #define MEM_TRACE_START   (90)
 #define MEM_TRACE_STOP    (91)
 #define MEM_TRACE_RESULTS (92)
+#define MEM_TRACE_START_INST (93)
 
 // ---- Executing helpers inside QEMU ---- //
 

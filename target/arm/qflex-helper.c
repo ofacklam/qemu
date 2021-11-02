@@ -43,8 +43,9 @@ static uint64_t prev_nop_op = 0;
 
 static inline void qflex_mem_trace_cmds(CPUState *cs, uint64_t nop_op) {
     switch(nop_op) {
-        case MEM_TRACE_START:   qflex_mem_trace_start(1 << 9, QFLEX_LOG_TINY_INST); break;
+        case MEM_TRACE_START:   qflex_mem_trace_start(-1, QFLEX_LOG_TINY_INST); break;
         case MEM_TRACE_STOP:    qflex_mem_trace_stop();       break;
+        case MEM_TRACE_START_INST: qflex_mem_trace_start(QFLEX_GET_ARCH(reg)(cs, 0), QFLEX_LOG_GEN_FULL_INST); break;
         case MEM_TRACE_RESULTS: qflex_mem_trace_log_direct(); break;
     }
 }

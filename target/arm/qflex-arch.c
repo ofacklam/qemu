@@ -30,6 +30,11 @@ uint64_t QFLEX_GET_ARCH(tid)(CPUState *cs) {
     return ENV(cs)->cp15.tpidr_el[curr_el];
 }
 
+int QFLEX_GET_ARCH(reg)(CPUState *cs, int reg_index) {
+    assert(reg_index < 32);
+    return ENV(cs)->xregs[reg_index];
+}
+
 uint64_t gva_to_hva(CPUState *cs, uint64_t addr, int access_type) {
     return gva_to_hva_arch(cs, addr, (MMUAccessType) access_type);
 }
