@@ -4,6 +4,7 @@ devteroflex_ss.add([files(
    'page-demander.c',
    'verification.c',
    'custom-instrumentation.c',
+   'tracing.c',
    'devteroflex.c',
  ), devteroflex])
 

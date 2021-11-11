@@ -50,6 +50,7 @@
 
 #ifdef CONFIG_DEVTEROFLEX
 #include "qflex/devteroflex/custom-instrumentation.h"
+#include "qflex/devteroflex/tracing.h"
 #endif
 
 static TCGv_i64 cpu_X[32];
@@ -14646,8 +14647,10 @@ static void disas_a64_insn(CPUARMState *env, DisasContext *s)
      * Inserting a function callbacks will slowdown significantly excecution, 
      * to not slowdown constantly, we should insert the helper only when intented. 
      */
+
     GEN_QFLEX_HELPER(devteroflexGen.example, GEN_HELPER(devteroflex_example_instrumentation)( 
                      cpu_env, tcg_const_i64(TAG_INSTRUCTION_DECODED), tcg_const_i64(s->base.pc_next)));
+    GEN_QFLEX_HELPER(devteroflexTrace.tracing, GEN_HELPER(devteroflex_tracing_instrumentation)(cpu_env));
  
     s->fp_access_checked = false;
     s->sve_access_checked = false;

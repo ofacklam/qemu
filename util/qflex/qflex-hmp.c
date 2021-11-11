@@ -63,6 +63,7 @@ void hmp_qflex_mem_trace_log_stats(Monitor *mon, const QDict *qdict) {
 #include "qflex/devteroflex/devteroflex.h"
 #include "qflex/devteroflex/verification.h"
 #include "qflex/devteroflex/custom-instrumentation.h"
+#include "qflex/devteroflex/tracing.h"
 void hmp_devteroflex_start(Monitor *mon, const QDict *qdict) {
     devteroflex_init(true, true);
 }
@@ -81,6 +82,20 @@ void hmp_devteroflex_gen_example(Monitor *mon, const QDict *qdict) {
     } else if (strcmp(op, "stop") == 0) {
         monitor_printf(mon, "DevteroFlex: stop gen example helper\n");
         devteroflex_gen_example_set(false, 0);
+    } else {
+        monitor_printf(mon, "Devteroflex: Unexpected 'op' parameter [start | stop]\n");
+    }
+}
+
+void hmp_devteroflex_trace(Monitor *mon, const QDict *qdict) {
+    size_t nb_insn = qdict_get_int(qdict, "nb_insn");
+    const char *op = qdict_get_str(qdict, "op");
+    if(strcmp(op, "start") == 0) {
+        monitor_printf(mon, "DevteroFlex: start tracing helper for %li instructions\n", nb_insn);
+        devteroflex_trace_set(true, nb_insn);
+    } else if (strcmp(op, "stop") == 0) {
+        monitor_printf(mon, "DevteroFlex: stop tracing helper\n");
+        devteroflex_trace_set(false, 0);
     } else {
         monitor_printf(mon, "Devteroflex: Unexpected 'op' parameter [start | stop]\n");
     }

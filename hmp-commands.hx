@@ -1849,6 +1849,19 @@ SRST
   of instrumenting QEMU instruction execution.
 ERST
 
+    {
+        .name       = "devteroflex-tracing",
+        .args_type  = "op:s,nb_insn:i",
+        .params     = "op nb_insn",
+        .help       = "start/stop tracing callbacks",
+        .cmd        = hmp_devteroflex_trace,
+    },
+
+SRST
+``devteroflex-tracing [ start | stop ]`` *nb_insn*
+  Run tracing callbacks for *nb_insn*.
+ERST
+
 #endif
 
 
