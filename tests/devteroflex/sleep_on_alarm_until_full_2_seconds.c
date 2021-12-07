@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <signal.h>
 
 #define Mil 1000000
 
