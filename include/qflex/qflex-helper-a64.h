@@ -18,10 +18,12 @@ void HELPER(qflex_executed_instruction)(CPUARMState* env, uint64_t pc, int locat
 
 #if defined(TCG_GEN) && defined(CONFIG_DEVTEROFLEX)
 DEF_HELPER_3(devteroflex_example_instrumentation, void , env, i64, i64)
-DEF_HELPER_1(devteroflex_tracing_instrumentation, void , i64)
+DEF_HELPER_1(devteroflex_tracing_instrumentation_single, void , i64)
+DEF_HELPER_2(devteroflex_tracing_instrumentation_multi, void , i64, i64)
 
 #elif !defined(CONFIG_DEVTEROFLEX)
 void HELPER(devteroflex_example_instrumentation)(CPUARMState *env, uint64_t arg1, uint64_t arg2));
-void HELPER(devteroflex_tracing_instrumentation)(uint64_t pc_curr));
+void HELPER(devteroflex_tracing_instrumentation_single)(uint64_t pc_curr));
+void HELPER(devteroflex_tracing_instrumentation_multi)(uint64_t cpu_idx, uint64_t pc_curr));
 
 #endif

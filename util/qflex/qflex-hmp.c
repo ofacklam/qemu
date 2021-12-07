@@ -88,14 +88,17 @@ void hmp_devteroflex_gen_example(Monitor *mon, const QDict *qdict) {
 }
 
 void hmp_devteroflex_trace(Monitor *mon, const QDict *qdict) {
-    size_t nb_insn = qdict_get_int(qdict, "nb_insn");
     const char *op = qdict_get_str(qdict, "op");
+    const char *multi = qdict_get_str(qdict, "multi");
+    size_t bufsize = qdict_get_int(qdict, "bufsize");
     if(strcmp(op, "start") == 0) {
-        monitor_printf(mon, "DevteroFlex: start tracing helper for %li instructions\n", nb_insn);
-        devteroflex_trace_set(true, nb_insn);
+        bool multi_buffer = !strcmp(multi, "multi");
+        monitor_printf(mon, "DevteroFlex: start tracing helper with %s of size %lu entries\n",
+                       multi_buffer ? "multiple buffers" : "single buffer", bufsize);
+        devteroflex_trace_set(true, multi_buffer, bufsize);
     } else if (strcmp(op, "stop") == 0) {
         monitor_printf(mon, "DevteroFlex: stop tracing helper\n");
-        devteroflex_trace_set(false, 0);
+        devteroflex_trace_set(false, false, 0);
     } else {
         monitor_printf(mon, "Devteroflex: Unexpected 'op' parameter [start | stop]\n");
     }

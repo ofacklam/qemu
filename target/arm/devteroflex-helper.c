@@ -54,8 +54,14 @@ void HELPER(devteroflex_example_instrumentation)(CPUARMState *env, uint64_t arg1
 }
 
 #include "qflex/devteroflex/tracing.h"
-void HELPER(devteroflex_tracing_instrumentation)(uint64_t pc_curr)
+void HELPER(devteroflex_tracing_instrumentation_single)(uint64_t pc_curr)
 {
     // Here you can insert any function callback
-    devteroflex_trace_callback(pc_curr);
+    devteroflex_trace_callback_single(pc_curr);
+}
+
+void HELPER(devteroflex_tracing_instrumentation_multi)(uint64_t cpu_idx, uint64_t pc_curr)
+{
+    // Here you can insert any function callback
+    devteroflex_trace_callback_multi(cpu_idx, pc_curr);
 }

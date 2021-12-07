@@ -1851,15 +1851,15 @@ ERST
 
     {
         .name       = "devteroflex-tracing",
-        .args_type  = "op:s,nb_insn:i",
-        .params     = "op nb_insn",
+        .args_type  = "op:s,multi:s,bufsize:i",
+        .params     = "op multi bufsize",
         .help       = "start/stop tracing callbacks",
         .cmd        = hmp_devteroflex_trace,
     },
 
 SRST
-``devteroflex-tracing [ start | stop ]`` *nb_insn*
-  Run tracing callbacks for *nb_insn*.
+``devteroflex-tracing [ start | stop ] [ single | multi ]`` *bufsize*
+  Run tracing callbacks with single buffer / one buffer for each vCPU, each of size *bufsize*.
 ERST
 
 #endif

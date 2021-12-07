@@ -14650,7 +14650,10 @@ static void disas_a64_insn(CPUARMState *env, DisasContext *s)
 
     GEN_QFLEX_HELPER(devteroflexGen.example, GEN_HELPER(devteroflex_example_instrumentation)( 
                      cpu_env, tcg_const_i64(TAG_INSTRUCTION_DECODED), tcg_const_i64(s->base.pc_next)));
-    GEN_QFLEX_HELPER(devteroflexTrace.tracing, GEN_HELPER(devteroflex_tracing_instrumentation)(tcg_const_i64(s->pc_curr)));
+    GEN_QFLEX_HELPER(devteroflexTrace.tracing && !devteroflexTrace.multi_buffer,
+                     GEN_HELPER(devteroflex_tracing_instrumentation_single)(tcg_const_i64(s->pc_curr)));
+    GEN_QFLEX_HELPER(devteroflexTrace.tracing && devteroflexTrace.multi_buffer,
+                     GEN_HELPER(devteroflex_tracing_instrumentation_multi)(tcg_const_i64(CPU(env_archcpu(env))->cpu_index), tcg_const_i64(s->pc_curr)));
  
     s->fp_access_checked = false;
     s->sve_access_checked = false;
