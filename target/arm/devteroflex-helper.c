@@ -54,13 +54,8 @@ void HELPER(devteroflex_example_instrumentation)(CPUARMState *env, uint64_t arg1
 }
 
 #include "qflex/devteroflex/tracing.h"
-void HELPER(devteroflex_tracing_instrumentation)(CPUARMState *env)
+void HELPER(devteroflex_tracing_instrumentation)(uint64_t pc_curr)
 {
-    CPUState *cs = CPU(env_archcpu(env));
-
-    DevteroflexArchState cpu;
-    devteroflex_pack_archstate(&cpu, cs);
-
     // Here you can insert any function callback
-    devteroflex_trace_callback(cs->cpu_index, &cpu);
+    devteroflex_trace_callback(pc_curr);
 }

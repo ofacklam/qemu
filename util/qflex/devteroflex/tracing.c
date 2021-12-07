@@ -11,30 +11,19 @@ DevteroflexTrace_t devteroflexTrace = {
     .max_calls = 0,
     .nb_calls = 0,
     .num_cpus = 0,
-    .log_files = NULL
+    .buffer_index = 0,
 };
 
-static void open_files(uint64_t num_cpus) {
-    devteroflexTrace.num_cpus = num_cpus;
-    devteroflexTrace.log_files = (FILE**) calloc(num_cpus, sizeof(FILE*));
+static void dump_buffer_contents(void) {
+    FILE* fp;
+    file_stream_open(&fp, "execution_trace");
 
-    char filename[sizeof "execution_trace_00"];
-    for(uint64_t i = 0; i < num_cpus; i++) {
-        sprintf(filename, "execution_trace_%02ld", i);
-        file_stream_open(&devteroflexTrace.log_files[i], filename);
+    for(uint64_t i = 0; i < BUFFER_SIZE; i++) {
+        uint64_t idx_curr = (i + devteroflexTrace.buffer_index) % BUFFER_SIZE;
+        fprintf(fp, "0x%016"PRIx64"\n", devteroflexTrace.circular_buffer[idx_curr]);
     }
-}
 
-static void close_files(void) {
-    if(devteroflexTrace.log_files) {
-        for(uint64_t i = 0; i < devteroflexTrace.num_cpus; i++) {
-            fclose(devteroflexTrace.log_files[i]);
-        }
-
-        free(devteroflexTrace.log_files);
-        devteroflexTrace.log_files = NULL;
-        devteroflexTrace.num_cpus = 0;
-    }
+    fclose(fp);
 }
 
 /** 
@@ -53,13 +42,19 @@ void devteroflex_trace_set(bool set, uint64_t nb_insn)
     devteroflexTrace.tracing = set;
     devteroflexTrace.max_calls = nb_insn;
     devteroflexTrace.nb_calls = 0;
+    devteroflexTrace.num_cpus = ms->smp.cpus;
 
     if(set) {
-        close_files();
-        open_files(ms->smp.cpus);
+        qemu_mutex_init(&devteroflexTrace.mtx);
+        devteroflexTrace.buffer_index = 0;
     }
 
     qflex_tb_flush();
+
+    if(!set) {
+        qemu_mutex_destroy(&devteroflexTrace.mtx);
+        dump_buffer_contents();
+    }
 }
 
 /**
@@ -69,24 +64,21 @@ void devteroflex_trace_set(bool set, uint64_t nb_insn)
  *       Multiple threads might be updating the `nb_calls` at the same time resulting 
  *       in data races.
  */
-void devteroflex_trace_callback(uint64_t cpu_index, DevteroflexArchState *cpu)
+void devteroflex_trace_callback(uint64_t pc_curr)
 {
-    FILE *cpu_file = devteroflexTrace.log_files[cpu_index];
+    qemu_mutex_lock(&devteroflexTrace.mtx);
+
+    // GET & UPDATE BUFFER INDEX
+    /*uint64_t idx_curr, idx_new;
+    do {
+        idx_curr = devteroflexTrace.buffer_index;
+        idx_new = (idx_curr + 1) % BUFFER_SIZE;
+    } while (qatomic_cmpxchg(&devteroflexTrace.buffer_index, idx_curr, idx_new) != idx_curr);*/
+    uint64_t idx_curr = devteroflexTrace.buffer_index;
+    devteroflexTrace.buffer_index = (idx_curr + 1) % BUFFER_SIZE;
 
     // DUMP THE PROCESSOR STATE
-    fprintf(cpu_file, "CPU state for PC[0x%016"PRIx64"]:\n", cpu->pc);
-    for(int i = 0; i < 32; i++) {
-        fprintf(cpu_file, "\t r%02"PRId32" = 0x%016"PRIx64"\n", i, cpu->xregs[i]);
-    }
-    fprintf(cpu_file, "\t SP = 0x%016"PRIx64"\n", cpu->sp);
-    fprintf(cpu_file, "\t NZCV = 0x%016"PRIx64"\n", cpu->nzcv);
+    devteroflexTrace.circular_buffer[idx_curr] = pc_curr;
 
-    // FLUSH THE FILE STREAM
-    fflush(cpu_file);
-
-    devteroflexTrace.nb_calls++;
-    if(devteroflexTrace.max_calls <= devteroflexTrace.nb_calls) {
-        // Stop executing helpers
-        devteroflex_trace_set(false, 0);
-    }
+    qemu_mutex_unlock(&devteroflexTrace.mtx);
 }
