@@ -6,6 +6,8 @@
 #include "hw/qdev-core.h"
 #include "hw/boards.h"
 
+#define MULTI_THREAD 0
+
 DevteroflexTrace_t devteroflexTrace = {
     .tracing = false,
     .multi_buffer = false,
@@ -85,7 +87,9 @@ void devteroflex_trace_set(bool set, bool multi, uint64_t bufsize)
  */
 void devteroflex_trace_callback_single(uint64_t pc_curr)
 {
+#if MULTI_THREAD
     qemu_mutex_lock(&devteroflexTrace.mtx);
+#endif
 
     // GET & UPDATE BUFFER INDEX
     uint64_t idx_curr = devteroflexTrace.buffer_index[0];
@@ -94,7 +98,9 @@ void devteroflex_trace_callback_single(uint64_t pc_curr)
     // DUMP THE PROCESSOR STATE
     devteroflexTrace.circular_buffer[idx_curr] = pc_curr;
 
+#if MULTI_THREAD
     qemu_mutex_unlock(&devteroflexTrace.mtx);
+#endif
 }
 
 void devteroflex_trace_callback_multi(uint64_t cpu_idx, uint64_t pc_curr)
